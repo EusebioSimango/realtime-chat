@@ -1,19 +1,31 @@
-const express = require('express')
-const path = require('path')
-const PORT = process.env.PORT || 3000
+import express from 'express'
+import http from 'http'
+import { Server } from 'socket.io'
 
 const app = express()
-const server = require('http').createServer(app)
-const io = require('socket.io')(server)
+const server = http.createServer(app)
+const port = 3000
+const sockets = new Server(server, { /* OPITIONS */ })
 
+app.use(express.static('public'))
 
-app.use(express.static(path.join(__dirname, 'public')))
-app.set('views', path.join(__dirname, 'public'))
-app.engine('html', require('ejs').renderFile)
-app.set('view engine', 'html')
+const messages = []
 
-app.get('/', (request, response) => {
+sockets.on('connection', socket => {
+	console.log(`Socket connectado ${socket.id}`)
 
+	socket.emit('previousMessages', messages)
+
+	socket.on('sendMessage', data => {
+		console.log(data)
+		messages.push(data)
+
+		socket.broadcast.emit('receivedMessage', data)
+	})
 })
 
-app.listen(PORT, () => console.log(`Server start on port: ${PORT}`))
+
+
+server.listen(port, () => {
+	console.log(`> Server listening on port:  ${port}`)
+}) 
